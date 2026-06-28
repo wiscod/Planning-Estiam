@@ -7,8 +7,9 @@ from datetime import datetime, timedelta
 from icalendar import Calendar
 import requests
 from playwright.async_api import async_playwright
-from twilio.rest import Client
+from dotenv import load_dotenv
 
+load_dotenv()
 
 # Credentials from environment variables
 USERNAME = os.getenv("HYPERPLANNING_USERNAME", "DJIHOUA")
@@ -16,12 +17,10 @@ PASSWORD = os.getenv("HYPERPLANNING_PASSWORD", "")
 ICS_URL = os.getenv("ICS_URL", "")
 HYPERPLANNING_URL = "https://estiam-planning2026.hyperplanning.fr/hp/etudiant"
 
-# Twilio
-TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID", "")
-TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN", "")
-TWILIO_WHATSAPP_FROM = os.getenv("TWILIO_WHATSAPP_FROM", "")
-WHATSAPP_TO = os.getenv("WHATSAPP_TO", "")
-
+# Architecture paths
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+LOGS_DIR = os.path.join(BASE_DIR, "logs")
+DATA_DIR = os.path.join(BASE_DIR, "public", "data")
 
 def get_current_and_next_week():
     """Retourne le numéro de la semaine en cours et la suivante."""
@@ -104,8 +103,8 @@ async def get_courses_from_ics():
         import traceback
         error_msg = f"Erreur ICS: {e}\n{traceback.format_exc()}"
         print(error_msg)
-        os.makedirs("docs", exist_ok=True)
-        with open("docs/error_ics.txt", "w") as f:
+        os.makedirs(LOGS_DIR, exist_ok=True)
+        with open(os.path.join(LOGS_DIR, "error_ics.txt"), "w") as f:
             f.write(error_msg)
         return None
 
@@ -262,7 +261,7 @@ async def get_courses_from_scraping():
                         print(f"Erreur parsing label: {label} -> {e}")
 
                 # Prendre un screenshot pour debogage
-                await page.screenshot(path=f"docs/debug_week{i}.png", full_page=True)
+                await page.screenshot(path=os.path.join(LOGS_DIR, f"debug_week{i}.png"), full_page=True)
 
                 # Navigate to next week using the week ruler!
                 week_current = datetime.now().isocalendar()[1]
@@ -280,14 +279,14 @@ async def get_courses_from_scraping():
         import traceback
         error_msg = f"Erreur scraping: {e}\n{traceback.format_exc()}"
         print(error_msg)
-        os.makedirs("docs", exist_ok=True)
-        with open("docs/error_scraping.txt", "w") as f:
+        os.makedirs(LOGS_DIR, exist_ok=True)
+        with open(os.path.join(LOGS_DIR, "error_scraping.txt"), "w") as f:
             f.write(error_msg)
         return None
 
 
-def format_planning_whatsapp(courses_by_week: dict, week_current: int, week_next: int) -> str:
-    """Formate 2 semaines pour WhatsApp."""
+def format_planning(courses_by_week: dict, week_current: int, week_next: int) -> str:
+    """Formate le planning sur 2 semaines."""
     jours_map = {
         "13 april": "LUNDI 13 AVRIL",
         "14 april": "MARDI 14 AVRIL",
@@ -339,21 +338,6 @@ def format_planning_whatsapp(courses_by_week: dict, week_current: int, week_next
     return message
 
 
-def send_whatsapp(message: str) -> bool:
-    """Envoie le message via Twilio WhatsApp."""
-    try:
-        client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
-        msg = client.messages.create(
-            from_=f"whatsapp:{TWILIO_WHATSAPP_FROM}",
-            body=message,
-            to=f"whatsapp:{WHATSAPP_TO}",
-        )
-        print(f"✅ Message envoyé ! SID: {msg.sid}")
-        return True
-    except Exception as e:
-        print(f"❌ Erreur Twilio: {e}")
-        return False
-
 
 def save_planning_json(courses_by_week: dict, week_current: int, week_next: int) -> bool:
     """Sauvegarde le planning en fichier JSON pour le widget iPhone."""
@@ -380,9 +364,9 @@ def save_planning_json(courses_by_week: dict, week_current: int, week_next: int)
                 ]
             }
 
-        # Sauvegarder dans /docs pour GitHub Pages
-        os.makedirs("docs", exist_ok=True)
-        with open("docs/planning.json", "w", encoding="utf-8") as f:
+        # Sauvegarder dans /public/data pour la vue web
+        os.makedirs(DATA_DIR, exist_ok=True)
+        with open(os.path.join(DATA_DIR, "planning.json"), "w", encoding="utf-8") as f:
             json.dump(planning_data, f, ensure_ascii=False, indent=2)
 
         print("✅ Planning sauvegardé en JSON")
@@ -419,17 +403,15 @@ async def main():
         return
 
     print("✏️ Formatage du message...")
-    message = format_planning_whatsapp(courses_by_week, week_current, week_next)
+    message = format_planning(courses_by_week, week_current, week_next)
 
-    print("\n📤 Message à envoyer:\n")
+    print("\n📤 Message formaté :\n")
     print(message)
     print("=" * 60)
 
     # Sauvegarder en JSON pour le widget iPhone et la vue web
     save_planning_json(courses_by_week, week_current, week_next)
 
-    # Envoyer via WhatsApp
-    send_whatsapp(message)
 
 
 if __name__ == "__main__":

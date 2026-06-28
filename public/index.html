@@ -150,7 +150,7 @@
 
   async function load() {
     try {
-      const r = await fetch('./planning.json');
+      const r = await fetch('./data/planning.json');
       const data = await r.json();
 
       const ts = new Date(data.timestamp);

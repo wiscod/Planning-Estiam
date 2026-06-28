@@ -1,0 +1,75 @@
+{
+  "timestamp": "2026-06-29T01:28:10.575880",
+  "weeks": {
+    "27": {
+      "semaine": 27,
+      "courses": [
+        {
+          "date": "30 june",
+          "time": "09:30 (Presentiel - Salle G (Mohandas Karamchand GANDHI), Salle H (Victor HUGO))",
+          "matiere": "Hackathon"
+        },
+        {
+          "date": "30 june",
+          "time": "14:00 (Presentiel - Salle G (Mohandas Karamchand GANDHI), Salle H (Victor HUGO))",
+          "matiere": "Hackathon"
+        },
+        {
+          "date": "01 july",
+          "time": "14:00 (Presentiel - Salle G (Mohandas Karamchand GANDHI), Salle H (Victor HUGO))",
+          "matiere": "Hackathon"
+        },
+        {
+          "date": "01 july",
+          "time": "09:30 (Presentiel - Salle G (Mohandas Karamchand GANDHI), Salle H (Victor HUGO))",
+          "matiere": "Hackathon"
+        },
+        {
+          "date": "02 july",
+          "time": "14:00 (Presentiel - Salle G (Mohandas Karamchand GANDHI), Salle H (Victor HUGO))",
+          "matiere": "Hackathon"
+        },
+        {
+          "date": "02 july",
+          "time": "09:30 (Presentiel - Salle G (Mohandas Karamchand GANDHI), Salle H (Victor HUGO))",
+          "matiere": "Hackathon"
+        }
+      ]
+    },
+    "28": {
+      "semaine": 28,
+      "courses": [
+        {
+          "date": "07 july",
+          "time": "09:30 (Distanciel)",
+          "matiere": "Info System Management"
+        },
+        {
+          "date": "07 july",
+          "time": "14:00 (Distanciel)",
+          "matiere": "Info System Management"
+        },
+        {
+          "date": "08 july",
+          "time": "09:30 (Distanciel)",
+          "matiere": "Info System Management"
+        },
+        {
+          "date": "08 july",
+          "time": "14:00 (Distanciel)",
+          "matiere": "Info System Management"
+        },
+        {
+          "date": "09 july",
+          "time": "09:30 (Distanciel)",
+          "matiere": "Info System Management"
+        },
+        {
+          "date": "09 july",
+          "time": "14:00 (Distanciel)",
+          "matiere": "Info System Management"
+        }
+      ]
+    }
+  }
+}
