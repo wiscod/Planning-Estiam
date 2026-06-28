@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Planning de la Semaine</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: #f5f4f0;
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 48px 24px;
+  }
+
+  .container { width: 100%; max-width: 780px; }
+
+  h1 {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #999;
+    margin-bottom: 28px;
+  }
+
+  .week-range {
+    font-size: 22px;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 36px;
+    letter-spacing: -0.02em;
+  }
+
+  .week-block { margin-bottom: 48px; }
+
+  .planning { display: flex; flex-direction: column; gap: 2px; }
+
+  .day-row {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    min-height: 64px;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .day-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #fff;
+    padding: 12px;
+    text-align: center;
+  }
+
+  .day-content {
+    background: #fff;
+    padding: 14px 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 6px;
+    border-top: 1px solid #ebebeb;
+    border-right: 1px solid #ebebeb;
+    border-bottom: 1px solid #ebebeb;
+    border-radius: 0 4px 4px 0;
+  }
+
+  .task {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    font-size: 14px;
+    color: #2a2a2a;
+    font-weight: 400;
+    line-height: 1.4;
+  }
+
+  .task::before { content: '—'; color: #bbb; font-size: 11px; flex-shrink: 0; }
+
+  .task-start, .task-duration {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: #aaa;
+    margin-left: 4px;
+    white-space: nowrap;
+  }
+
+  .empty { font-size: 13px; color: #ccc; font-style: italic; }
+
+  .lundi .day-label, .mardi .day-label, .mercredi .day-label,
+  .jeudi .day-label, .vendredi .day-label { background: #7c9cbf; }
+
+  .samedi .day-label, .dimanche .day-label { background: #9b8ec4; }
+
+  .error { color: #a55; font-size: 14px; }
+
+  .day-date-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: #999;
+    margin-bottom: 2px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Planning de la semaine</h1>
+  <div class="week-range" id="timestamp">Chargement...</div>
+  <div id="weeks"></div>
+</div>
+
+<script>
+  const MONTHS_EN = ["january","february","march","april","may","june","july","august","september","october","november","december"];
+  const MONTHS_FR = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
+  const DAYS = ["dimanche","lundi","mardi","mercredi","jeudi","vendredi","samedi"];
+  const ORDER = ["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"];
+
+  const dateCache = {};
+
+  function parseDate(dateStr) {
+    if (dateCache[dateStr]) return dateCache[dateStr];
+    const parts = dateStr.toLowerCase().split(" ");
+    const day = parseInt(parts[0]);
+    const monthIdx = MONTHS_EN.indexOf(parts[1]);
+    if (monthIdx < 0) return null;
+    const year = new Date().getFullYear();
+    const result = { day, monthIdx, dayName: DAYS[new Date(year, monthIdx, day).getDay()] };
+    dateCache[dateStr] = result;
+    return result;
+  }
+
+  function fmtDayLabel(p) {
+    return `${p.dayName} ${p.day} ${MONTHS_FR[p.monthIdx]}`;
+  }
+
+  async function load() {
+    try {
+      const r = await fetch('./planning.json');
+      const data = await r.json();
+
+      const ts = new Date(data.timestamp);
+      document.getElementById('timestamp').textContent =
+        'Mis à jour le ' + ts.toLocaleString('fr-FR', { day:'2-digit', month:'long', hour:'2-digit', minute:'2-digit' });
+
+      const weeksEl = document.getElementById('weeks');
+      weeksEl.innerHTML = '';
+
+      for (const [num, week] of Object.entries(data.weeks)) {
+        const byDay = {};
+        for (const c of week.courses) {
+          const p = parseDate(c.date);
+          if (!p) continue;
+          const key = p.dayName;
+          if (!byDay[key]) byDay[key] = { label: fmtDayLabel(p), tasks: [] };
+          byDay[key].tasks.push(c);
+        }
+
+        const block = document.createElement('div');
+        block.className = 'week-block';
+
+        const title = document.createElement('div');
+        title.className = 'week-range';
+        title.textContent = `Semaine ${week.semaine}`;
+        block.appendChild(title);
+
+        const planning = document.createElement('div');
+        planning.className = 'planning';
+
+        for (const day of ORDER) {
+          const d = byDay[day];
+          const dayRow = document.createElement('div');
+          dayRow.className = `day-row ${day}`;
+
+          const label = document.createElement('div');
+          label.className = 'day-label';
+          label.textContent = day;
+          dayRow.appendChild(label);
+
+          const content = document.createElement('div');
+          content.className = 'day-content';
+
+          if (d) {
+            const dateLabel = document.createElement('div');
+            dateLabel.className = 'day-date-label';
+            dateLabel.textContent = d.label;
+            content.appendChild(dateLabel);
+
+            for (const t of d.tasks) {
+              const task = document.createElement('div');
+              task.className = 'task';
+              const matiere = document.createTextNode(t.matiere);
+              const time = document.createElement('span');
+              time.className = 'task-start';
+              time.textContent = `début ${t.time}`;
+              task.appendChild(matiere);
+              task.appendChild(time);
+              content.appendChild(task);
+            }
+          } else {
+            const empty = document.createElement('div');
+            empty.className = 'empty';
+            empty.textContent = '—';
+            content.appendChild(empty);
+          }
+
+          dayRow.appendChild(content);
+          planning.appendChild(dayRow);
+        }
+
+        block.appendChild(planning);
+        weeksEl.appendChild(block);
+      }
+    } catch (e) {
+      document.getElementById('weeks').innerHTML = `<div class="error">Erreur: ${e.message}</div>`;
+    }
+  }
+
+  load();
+  setInterval(load, 3600000);
+</script>
+</body>
+</html>
