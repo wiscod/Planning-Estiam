@@ -1,0 +1,15 @@
+.git
+.gitignore
+.env
+venv/
+**/__pycache__/
+*.pyc
+*.pyo
+tests/
+coverage.xml
+.coverage
+logs/
+annexe/
+*.md
+Makefile
+pytest.ini
