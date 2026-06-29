@@ -119,7 +119,12 @@ pipeline {
 
         
         stage('Push') {
-            when { branch 'main' }
+            when {
+                anyOf {
+                    branch 'main'
+                    expression { env.GIT_BRANCH == 'origin/main' || env.GIT_BRANCH == 'main' }
+                }
+            }
             steps {
                 withCredentials([usernamePassword(
                     credentialsId: 'github-token',
@@ -127,7 +132,7 @@ pipeline {
                     passwordVariable: 'REGISTRY_PASS'
                 )]) {
                     sh '''
-                    echo $REGISTRY_PASS | docker login ghcr.io \
+                    echo $REGISTRY_PASS | docker login ghcr.io \\
                     -u $REGISTRY_USER --password-stdin
                     
                     docker push ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}
@@ -140,7 +145,12 @@ pipeline {
         }
         
         stage('Deploy Staging') {
-            when { branch 'main' }
+            when {
+                anyOf {
+                    branch 'main'
+                    expression { env.GIT_BRANCH == 'origin/main' || env.GIT_BRANCH == 'main' }
+                }
+            }
             steps {
                 echo "Déploiement de ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG} en staging..."
                 sh '''
