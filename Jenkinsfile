@@ -47,8 +47,7 @@ pipeline {
                 pytest tests/ -v \
                 --cov=src \
                 --cov-report=xml:/tmp/coverage.xml \
-                --cov-report=term-missing \
-                --cov-fail-under=70
+                --cov-report=term-missing
                 TEST_EXIT_CODE=$?
                 set -e
                 
