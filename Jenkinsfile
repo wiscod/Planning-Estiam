@@ -57,6 +57,10 @@ pipeline {
                 docker cp test-runner:/tmp/coverage.xml ./coverage.xml 2>/dev/null || true
                 docker rm -f test-runner 2>/dev/null || true
                 
+                # Fix paths in coverage.xml for SonarQube
+                sed -i "s|/app/src|src|g" ./coverage.xml || true
+                sed -i "s|/app/|${WORKSPACE}/|g" ./coverage.xml || true
+                
                 exit $TEST_EXIT_CODE
                 '''
             }
