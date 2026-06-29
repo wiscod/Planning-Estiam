@@ -21,7 +21,8 @@ COPY tests/              ./tests/
 COPY docker-entrypoint.sh .
 
 # Dossiers runtime et utilisateur non-root
-RUN mkdir -p logs public/data \
+RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/* \
+    && mkdir -p logs public/data \
     && useradd -m -u 1001 appuser \
     && chown -R appuser:appuser /app \
     && chmod +x docker-entrypoint.sh
