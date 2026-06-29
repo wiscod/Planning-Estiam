@@ -11,10 +11,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Credentials from environment variables
-USERNAME = os.getenv("HYPERPLANNING_USERNAME", "DJIHOUA")
-PASSWORD = os.getenv("HYPERPLANNING_PASSWORD", "")
 ICS_URL = os.getenv("ICS_URL", "")
-HYPERPLANNING_URL = "https://estiam-planning2026.hyperplanning.fr/hp/etudiant"
 
 # Architecture paths
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
