@@ -5,7 +5,6 @@ venv/
 **/__pycache__/
 *.pyc
 *.pyo
-tests/
 coverage.xml
 .coverage
 logs/
