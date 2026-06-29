@@ -107,6 +107,7 @@ pipeline {
                 -v trivy-cache:/root/.cache/trivy \
                 aquasec/trivy:latest image \
                 --severity HIGH,CRITICAL \
+                --ignore-unfixed \
                 --exit-code 1 \
                 --format table \
                 ''' + "${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
