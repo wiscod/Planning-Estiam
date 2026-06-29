@@ -69,3 +69,43 @@ def test_parse_ics_location_presentiel_dans_time():
 def test_parse_ics_contenu_invalide_retourne_none():
     result = parse_ics_file("CONTENU NON ICS")
     assert result is None
+
+
+def test_format_planning():
+    from scraper import format_planning
+    sample_courses = {
+        27: [{'date': '13 april', 'time': '09:30', 'matiere': 'Maths'}],
+        28: [{'date': '20 april', 'time': '14:00', 'matiere': 'DevOps'}]
+    }
+    result = format_planning(sample_courses, 27, 28)
+    assert "VOTRE PLANNING" in result
+    assert "SEMAINE 27" in result
+    assert "Maths" in result
+    assert "SEMAINE 28" in result
+    assert "DevOps" in result
+
+
+def test_save_planning_json(tmp_path):
+    from scraper import save_planning_json
+    import scraper
+    # Override DATA_DIR temporarily for the test
+    original_data_dir = scraper.DATA_DIR
+    try:
+        scraper.DATA_DIR = str(tmp_path)
+        sample_courses = {
+            27: [{'date': '13 april', 'time': '09:30', 'matiere': 'Maths'}],
+        }
+        success = save_planning_json(sample_courses, 27, 28)
+        assert success is True
+        
+        import os
+        import json
+        json_file = os.path.join(str(tmp_path), "planning.json")
+        assert os.path.exists(json_file)
+        with open(json_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            assert "weeks" in data
+            assert "27" in data["weeks"]
+            assert data["weeks"]["27"]["courses"][0]["matiere"] == "Maths"
+    finally:
+        scraper.DATA_DIR = original_data_dir
