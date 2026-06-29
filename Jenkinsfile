@@ -166,6 +166,23 @@ pipeline {
                 """
             }
         }
+
+        stage('Smoke Test') {
+            when {
+                anyOf {
+                    branch 'main'
+                    expression { env.GIT_BRANCH == 'origin/main' || env.GIT_BRANCH == 'main' }
+                }
+            }
+            steps {
+                sh '''
+                echo "Attente du demarrage du conteneur staging..."
+                sleep 5
+                curl -f http://localhost:8001/health
+                echo "Smoke Test OK — /health repond 200"
+                '''
+            }
+        }
     }
 
     post {
