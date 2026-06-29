@@ -44,6 +44,7 @@ pipeline {
                 docker run \
                 -e CI=true \
                 --name test-runner \
+                --entrypoint "" \
                 ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG} \
                 pytest tests/ -v \
                 --cov=src \

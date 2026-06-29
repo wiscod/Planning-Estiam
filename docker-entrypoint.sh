@@ -1,6 +1,10 @@
 #!/bin/sh
 set -e
 
+if [ "$#" -gt 0 ]; then
+    exec "$@"
+fi
+
 echo "==> Initialisation du planning (ICS -> JSON)..."
 python3 src/scraper.py
 
