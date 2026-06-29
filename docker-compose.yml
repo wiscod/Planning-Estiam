@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  app:
+    image: ghcr.io/VOTRE_PSEUDO/planning-estiam:latest
+    container_name: planning-estiam-staging
+    ports:
+      - "8001:8001"
+    environment:
+      - ENV=staging
+    # If the app needs a persistent volume or network, configure it here.
+    restart: always

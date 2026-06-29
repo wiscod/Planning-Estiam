@@ -1,0 +1,156 @@
+// Jenkinsfile - Pipeline CI/CD Planning-Estiam
+pipeline {
+    agent any
+
+    environment {
+        IMAGE_NAME = 'planning-estiam'
+        REGISTRY = 'ghcr.io/wiscod'
+        IMAGE_TAG = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+        SONARQUBE_TOKEN = credentials('sonar-token')
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+                echo "Branche : ${env.BRANCH_NAME}"
+                echo "Commit  : ${env.GIT_COMMIT}"
+                sh 'git log --oneline -5'
+            }
+        }
+        
+        stage('Lint') {
+            steps {
+                sh '''
+                docker run --rm \
+                --volumes-from jenkins \
+                -w $WORKSPACE \
+                python:3.12-slim \
+                sh -c "pip install flake8 -q && flake8 src/ --max-line-length=100"
+                '''
+            }
+        }
+        
+        stage('Build & Test') {
+            steps {
+                sh '''
+                docker build -t ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG} .
+                
+                # Supprimer un éventuel conteneur test-runner résiduel
+                docker rm -f test-runner 2>/dev/null || true
+                
+                set +e
+                docker run \
+                -e CI=true \
+                --name test-runner \
+                ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG} \
+                pytest tests/ -v \
+                --cov=src \
+                --cov-report=xml:/tmp/coverage.xml \
+                --cov-report=term-missing \
+                --cov-fail-under=70
+                TEST_EXIT_CODE=$?
+                set -e
+                
+                # Copier coverage.xml depuis le conteneur vers le workspace
+                docker cp test-runner:/tmp/coverage.xml ./coverage.xml 2>/dev/null || true
+                docker rm -f test-runner 2>/dev/null || true
+                
+                exit $TEST_EXIT_CODE
+                '''
+            }
+        }
+        
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('sonarqube') {
+                    sh '''
+                    docker run --rm \
+                    --network cicd-network \
+                    --volumes-from jenkins \
+                    -w "$WORKSPACE" \
+                    -e SONAR_HOST_URL="$SONAR_HOST_URL" \
+                    -e SONAR_TOKEN="$SONARQUBE_TOKEN" \
+                    sonarsource/sonar-scanner-cli:latest \
+                    sonar-scanner \
+                    -Dsonar.projectKey=planning-estiam \
+                    -Dsonar.projectName=Planning-Estiam \
+                    -Dsonar.projectBaseDir="$WORKSPACE" \
+                    -Dsonar.sources=src \
+                    -Dsonar.python.version=3.12 \
+                    -Dsonar.python.coverage.reportPaths=coverage.xml \
+                    -Dsonar.sourceEncoding=UTF-8 \
+                    -Dsonar.scanner.metadataFilePath=$WORKSPACE/report-task.txt
+                    '''
+                }
+            }
+        }
+        
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 15, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+        
+        stage('Security Scan') {
+            steps {
+                sh '''
+                docker run --rm \
+                -v /var/run/docker.sock:/var/run/docker.sock \
+                -v trivy-cache:/root/.cache/trivy \
+                aquasec/trivy:latest image \
+                --severity HIGH,CRITICAL \
+                --exit-code 1 \
+                --format table \
+                ''' + "${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
+            }
+        }
+        
+        stage('Push') {
+            when { branch 'main' }
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'github-token',
+                    usernameVariable: 'REGISTRY_USER',
+                    passwordVariable: 'REGISTRY_PASS'
+                )]) {
+                    sh '''
+                    echo $REGISTRY_PASS | docker login ghcr.io \
+                    -u $REGISTRY_USER --password-stdin
+                    
+                    docker push ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}
+                    
+                    docker tag ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG} ${REGISTRY}/${IMAGE_NAME}:latest
+                    docker push ${REGISTRY}/${IMAGE_NAME}:latest
+                    '''
+                }
+            }
+        }
+        
+        stage('Deploy Staging') {
+            when { branch 'main' }
+            steps {
+                echo "Déploiement de ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG} en staging..."
+                sh '''
+                docker compose -f docker-compose.yml -p staging down 2>/dev/null || true
+                docker compose -f docker-compose.yml -p staging up -d
+                echo "Staging disponible sur http://localhost:8001"
+                '''
+            }
+        }
+    }
+
+    post {
+        always {
+            sh 'docker compose down -v 2>/dev/null || true'
+        }
+        success {
+            echo "Pipeline réussi ! Image : ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
+        }
+        failure {
+            echo 'Pipeline échoué. Consultez les logs ci-dessus.'
+        }
+    }
+}
