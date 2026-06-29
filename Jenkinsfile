@@ -144,7 +144,7 @@ pipeline {
             }
         }
         
-        stage('Deploy Staging') {
+        stage('IaC Apply') {
             when {
                 anyOf {
                     branch 'main'
@@ -152,18 +152,24 @@ pipeline {
                 }
             }
             steps {
-                echo "Déploiement de ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG} en staging..."
-                sh """
-                docker stop staging-app 2>/dev/null || true
-                docker rm -f staging-app 2>/dev/null || true
-                docker run -d \\
-                    --name staging-app \\
-                    -p 8001:8000 \\
-                    --restart unless-stopped \\
-                    --network cicd-network \\
-                    ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}
-                echo "Staging disponible sur http://localhost:8001"
-                """
+                withCredentials([string(credentialsId: 'ics-url', variable: 'ICS_URL')]) {
+                    sh """
+                    docker network create cicd-network 2>/dev/null || true
+                    docker stop planning-estiam-staging 2>/dev/null || true
+                    docker rm -f planning-estiam-staging 2>/dev/null || true
+
+                    docker run --rm \\
+                        -v /var/run/docker.sock:/var/run/docker.sock \\
+                        --volumes-from jenkins \\
+                        -w ${env.WORKSPACE}/infra \\
+                        -e TF_VAR_image_name="${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}" \\
+                        -e TF_VAR_ics_url="\${ICS_URL}" \\
+                        hashicorp/terraform:latest \\
+                        sh -c "terraform init -input=false && terraform apply -auto-approve && terraform output"
+
+                    echo "Staging provisionne via Terraform sur http://localhost:8001"
+                    """
+                }
             }
         }
 
@@ -187,7 +193,7 @@ pipeline {
 
     post {
         always {
-            sh 'docker stop staging-app 2>/dev/null || true; docker rm -f staging-app 2>/dev/null || true'
+            sh 'docker stop planning-estiam-staging 2>/dev/null || true; docker rm -f planning-estiam-staging 2>/dev/null || true'
         }
         success {
             echo "Pipeline réussi ! Image : ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
