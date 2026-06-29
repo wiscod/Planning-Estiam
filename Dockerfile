@@ -22,6 +22,7 @@ COPY docker-entrypoint.sh .
 
 # Dossiers runtime et utilisateur non-root
 RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/* \
+    && pip install --no-cache-dir --upgrade pip setuptools wheel \
     && mkdir -p logs public/data \
     && useradd -m -u 1001 appuser \
     && chown -R appuser:appuser /app \
