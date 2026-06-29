@@ -1,8 +1,6 @@
 import asyncio
-import re
 import os
 import json
-import subprocess
 from datetime import datetime, timedelta
 from icalendar import Calendar
 import requests
@@ -17,6 +15,7 @@ ICS_URL = os.getenv("ICS_URL", "")
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LOGS_DIR = os.path.join(BASE_DIR, "logs")
 DATA_DIR = os.path.join(BASE_DIR, "public", "data")
+
 
 def get_current_and_next_week():
     """Retourne le numéro de la semaine en cours et la suivante."""
@@ -67,7 +66,7 @@ def parse_ics_file(ics_content: str) -> dict:
                         else:
                             # If it's something else, just append it
                             location = f"Presentiel - {location_raw}"
-                            
+
                     if location:
                         time_str = f"{time_str} ({location})"
 
@@ -158,7 +157,6 @@ def format_planning(courses_by_week: dict, week_current: int, week_next: int) ->
     return message
 
 
-
 def save_planning_json(courses_by_week: dict, week_current: int, week_next: int) -> bool:
     """Sauvegarde le planning en fichier JSON pour le widget iPhone."""
     try:
@@ -220,7 +218,6 @@ async def main():
 
     # Sauvegarder en JSON pour le widget iPhone et la vue web
     save_planning_json(courses_by_week, week_current, week_next)
-
 
 
 if __name__ == "__main__":
