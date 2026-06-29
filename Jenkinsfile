@@ -153,18 +153,24 @@ pipeline {
             }
             steps {
                 echo "Déploiement de ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG} en staging..."
-                sh '''
-                docker compose -f docker-compose.yml -p staging down 2>/dev/null || true
-                docker compose -f docker-compose.yml -p staging up -d
+                sh """
+                docker stop staging-app 2>/dev/null || true
+                docker rm -f staging-app 2>/dev/null || true
+                docker run -d \\
+                    --name staging-app \\
+                    -p 8001:8000 \\
+                    --restart unless-stopped \\
+                    --network cicd-network \\
+                    ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}
                 echo "Staging disponible sur http://localhost:8001"
-                '''
+                """
             }
         }
     }
 
     post {
         always {
-            sh 'docker compose down -v 2>/dev/null || true'
+            sh 'docker stop staging-app 2>/dev/null || true; docker rm -f staging-app 2>/dev/null || true'
         }
         success {
             echo "Pipeline réussi ! Image : ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
