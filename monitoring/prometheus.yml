@@ -8,7 +8,3 @@ scrape_configs:
       - targets: ['planning-estiam:8000']
     metrics_path: '/metrics'
 
-  - job_name: 'planning-estiam-staging'
-    static_configs:
-      - targets: ['planning-estiam-staging:8000']
-    metrics_path: '/metrics'
