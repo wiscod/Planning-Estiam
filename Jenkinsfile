@@ -152,25 +152,23 @@ pipeline {
                 }
             }
             steps {
-                withCredentials([string(credentialsId: 'ics-url', variable: 'ICS_URL')]) {
-                    sh """
-                    docker network create cicd-network 2>/dev/null || true
-                    docker stop planning-estiam-staging 2>/dev/null || true
-                    docker rm -f planning-estiam-staging 2>/dev/null || true
+                sh """
+                docker network create cicd-network 2>/dev/null || true
+                docker stop planning-estiam-staging 2>/dev/null || true
+                docker rm -f planning-estiam-staging 2>/dev/null || true
 
-                    docker run --rm \\
-                        -v /var/run/docker.sock:/var/run/docker.sock \\
-                        --volumes-from jenkins \\
-                        -w ${env.WORKSPACE}/infra \\
-                        -e TF_VAR_image_name="${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}" \\
-                        -e TF_VAR_ics_url="\${ICS_URL}" \\
-                        --entrypoint sh \\
-                        hashicorp/terraform:latest \\
-                        -c "terraform init -input=false && terraform apply -auto-approve && terraform output"
+                docker run --rm \\
+                    -v /var/run/docker.sock:/var/run/docker.sock \\
+                    --volumes-from jenkins \\
+                    -w ${env.WORKSPACE}/infra \\
+                    -e TF_VAR_image_name="${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}" \\
+                    -e TF_VAR_ics_url="https://example.com/dummy.ics" \\
+                    --entrypoint sh \\
+                    hashicorp/terraform:latest \\
+                    -c "terraform init -input=false && terraform apply -auto-approve && terraform output"
 
-                    echo "Staging provisionne via Terraform sur http://localhost:8001"
-                    """
-                }
+                echo "Staging provisionne via Terraform sur http://localhost:8001"
+                """
             }
         }
 
