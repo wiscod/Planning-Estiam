@@ -88,7 +88,6 @@ Le pipeline Jenkins complet couvre 9 stages :
 |---|---|---|
 | `sonar-token` | Secret text | Token SonarQube |
 | `github-token` | Username/Password | Push sur ghcr.io |
-| `ics-url` | Secret text | URL du calendrier ICS |
 
 ## Architecture
 
