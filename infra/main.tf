@@ -10,14 +10,7 @@ terraform {
 
 provider "docker" {}
 
-resource "docker_network" "cicd" {
-  name   = var.network_name
-  driver = "bridge"
 
-  lifecycle {
-    ignore_changes = all
-  }
-}
 
 resource "docker_container" "staging" {
   name    = "planning-estiam-staging"
@@ -44,5 +37,4 @@ resource "docker_container" "staging" {
     retries  = 3
   }
 
-  depends_on = [docker_network.cicd]
 }
