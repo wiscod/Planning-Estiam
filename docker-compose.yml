@@ -1,6 +1,6 @@
 networks:
   cicd-network:
-    driver: bridge
+    external: true
 
 services:
   app:
