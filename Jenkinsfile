@@ -164,8 +164,9 @@ pipeline {
                         -w ${env.WORKSPACE}/infra \\
                         -e TF_VAR_image_name="${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}" \\
                         -e TF_VAR_ics_url="\${ICS_URL}" \\
+                        --entrypoint sh \\
                         hashicorp/terraform:latest \\
-                        sh -c "terraform init -input=false && terraform apply -auto-approve && terraform output"
+                        -c "terraform init -input=false && terraform apply -auto-approve && terraform output"
 
                     echo "Staging provisionne via Terraform sur http://localhost:8001"
                     """
@@ -184,7 +185,7 @@ pipeline {
                 sh '''
                 echo "Attente du demarrage du conteneur staging..."
                 sleep 5
-                curl -f http://localhost:8001/health
+                docker run --rm --network cicd-network curlimages/curl:latest -f http://planning-estiam-staging:8000/health
                 echo "Smoke Test OK — /health repond 200"
                 '''
             }
